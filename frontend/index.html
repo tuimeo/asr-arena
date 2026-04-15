@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASR 语音识别引擎对比</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>ASR 语音识别引擎对比工具</h1>
+            <p class="subtitle">录音或上传音频，同时对比多家语音识别引擎的效果</p>
+        </header>
+
+        <!-- Security Notice -->
+        <div class="notice">
+            <strong>安全警告：</strong>每次识别时，您的 API 密钥会经由后端服务器转发至各供应商。如果您访问的不是自己部署的服务，密钥存在被截获的风险。<br>
+            <strong>建议：</strong>① 仅提供最小权限的密钥；② 短期试用后及时轮换或删除密钥；③ 长期使用请自行部署本服务。
+        </div>
+
+        <!-- API Keys Section -->
+        <section class="section keys-section">
+            <div class="section-header" onclick="toggleSection('keys-content')">
+                <h2>API 密钥设置</h2>
+                <span class="toggle-icon" id="keys-toggle">▼</span>
+            </div>
+            <div id="keys-content" class="section-body">
+                <p class="key-storage-hint">密钥经后端加密后存储在浏览器本地 (localStorage)，本地不保留明文。每次识别时密文发送至后端解密后调用。</p>
+                <div class="keys-grid">
+                    <!-- Alibaba Cloud -->
+                    <div class="key-group" data-provider-group="ali">
+                        <h3>阿里云百炼 (DashScope) <span class="key-configured-badge" style="display:none;">已配置</span></h3>
+                        <p class="key-hint">用于 Paraformer-v2 / Fun-ASR / Qwen3-ASR 三个引擎</p>
+                        <label>API Key <input type="password" data-provider="ali" data-field="api_key" placeholder="sk-..."></label>
+                    </div>
+                    <!-- Baidu -->
+                    <div class="key-group" data-provider-group="baidu">
+                        <h3>百度智能云 <span class="key-configured-badge" style="display:none;">已配置</span></h3>
+                        <p class="key-hint">用于标准版 / 极速版两个引擎</p>
+                        <label>App ID <input type="text" data-provider="baidu" data-field="app_id" placeholder="App ID"></label>
+                        <label>API Key <input type="password" data-provider="baidu" data-field="api_key" placeholder="API Key"></label>
+                        <label>Secret Key <input type="password" data-provider="baidu" data-field="secret_key" placeholder="Secret Key"></label>
+                    </div>
+                    <!-- iFlytek -->
+                    <div class="key-group" data-provider-group="xunfei">
+                        <h3>科大讯飞 <span class="key-configured-badge" style="display:none;">已配置</span></h3>
+                        <p class="key-hint">用于星火语音大模型引擎</p>
+                        <label>App ID <input type="text" data-provider="xunfei" data-field="app_id" placeholder="App ID"></label>
+                        <label>API Key <input type="password" data-provider="xunfei" data-field="api_key" placeholder="API Key"></label>
+                        <label>API Secret <input type="password" data-provider="xunfei" data-field="api_secret" placeholder="API Secret"></label>
+                    </div>
+                    <!-- Tencent -->
+                    <div class="key-group" data-provider-group="tencent">
+                        <h3>腾讯云 <span class="key-configured-badge" style="display:none;">已配置</span></h3>
+                        <p class="key-hint">用于一句话识别 / 极速版引擎</p>
+                        <label>Secret ID <input type="password" data-provider="tencent" data-field="secret_id" placeholder="Secret ID"></label>
+                        <label>Secret Key <input type="password" data-provider="tencent" data-field="secret_key" placeholder="Secret Key"></label>
+                        <label>AppID <input type="text" data-provider="tencent" data-field="appid" placeholder="AppID (极速版需要)"></label>
+                    </div>
+                    <!-- Volcengine -->
+                    <div class="key-group" data-provider-group="volcengine">
+                        <h3>火山引擎 <span class="key-configured-badge" style="display:none;">已配置</span></h3>
+                        <p class="key-hint">用于 Seed-ASR 引擎</p>
+                        <label>App ID <input type="text" data-provider="volcengine" data-field="app_id" placeholder="App ID"></label>
+                        <label>Access Token <input type="password" data-provider="volcengine" data-field="access_token" placeholder="Access Token"></label>
+                    </div>
+                </div>
+                <div class="keys-actions">
+                    <button class="btn btn-secondary" onclick="saveKeys()">加密并保存</button>
+                    <button class="btn btn-danger" onclick="clearKeys()">清除所有密钥</button>
+                    <span id="keys-save-status" class="save-status"></span>
+                </div>
+                <p class="key-hint" id="keys-status-hint"></p>
+            </div>
+        </section>
+
+        <!-- Audio Section -->
+        <section class="section">
+            <h2>音频输入</h2>
+            <div class="audio-controls">
+                <button class="btn btn-primary" id="record-btn" onclick="toggleRecording()">
+                    <span class="record-dot"></span> 开始录音
+                </button>
+                <span id="record-timer" class="timer"></span>
+                <label class="btn btn-secondary upload-btn">
+                    上传音频文件
+                    <input type="file" accept="audio/*" id="file-input" onchange="handleFileUpload(event)" hidden>
+                </label>
+            </div>
+
+            <!-- Current audio -->
+            <div id="current-audio" class="current-audio" style="display:none;">
+                <strong>当前音频：</strong>
+                <span id="current-audio-name"></span>
+                <audio id="current-audio-player" controls></audio>
+            </div>
+
+        </section>
+
+        <!-- Recognize Action -->
+        <section class="section">
+            <h2>开始识别</h2>
+            <div class="recognize-group">
+                <div class="recognize-row">
+                    <label class="recognize-label">选择引擎</label>
+                    <div class="engine-select-row">
+                        <div id="engine-checkboxes" class="engine-checkboxes"></div>
+                        <div class="engine-select-actions">
+                            <button class="btn btn-secondary" onclick="toggleAllEngines(true)">全选</button>
+                            <button class="btn btn-secondary" onclick="toggleAllEngines(false)">全不选</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="recognize-row">
+                    <label class="recognize-label">参考文本 <span class="optional">(可选，用于 CER)</span></label>
+                    <textarea id="reference-text" placeholder="输入标准文本，用于计算字错率..." rows="2"></textarea>
+                </div>
+                <button class="btn btn-primary btn-large" id="recognize-btn" onclick="startRecognize()" disabled>
+                    开始识别
+                </button>
+            </div>
+        </section>
+
+        <!-- Live Results -->
+        <section class="section" id="live-results-section" style="display:none;">
+            <h2>本次识别结果</h2>
+            <div class="results-grid" id="live-results-grid"></div>
+        </section>
+
+        <!-- History Records -->
+        <section class="section" id="history-section" style="display:none;">
+            <h2>历史记录</h2>
+            <div id="history-list" class="history-list"></div>
+        </section>
+    </div>
+
+    <script src="app.js"></script>
+    <script src="api-keys.js"></script>
+    <script src="recorder.js"></script>
+</body>
+</html>
