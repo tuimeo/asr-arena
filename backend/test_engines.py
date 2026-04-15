@@ -76,7 +76,7 @@ async def test_engine(engine_id: str, wav_bytes: bytes, pcm_bytes: bytes, keys: 
     try:
         result = await asyncio.wait_for(
             engine.recognize(wav_bytes, pcm_bytes, 16000, provider_keys),
-            timeout=30.0,
+            timeout=60.0,
         )
         duration = time.monotonic() - t0
 
@@ -89,7 +89,7 @@ async def test_engine(engine_id: str, wav_bytes: bytes, pcm_bytes: bytes, keys: 
                 if cer is not None:
                     print(f"  [{engine_id}] CER: {cer * 100:.1f}%")
     except asyncio.TimeoutError:
-        print(f"  [{engine_id}] TIMEOUT (30s)")
+        print(f"  [{engine_id}] TIMEOUT (60s)")
     except Exception as e:
         duration = time.monotonic() - t0
         print(f"  [{engine_id}] EXCEPTION ({duration:.1f}s): {e}")

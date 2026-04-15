@@ -172,7 +172,7 @@ class AliQwen3ASRRealtimeEngine(BaseASREngine):
                 chunk = pcm_bytes[i:i + chunk_size]
                 audio_b64 = base64.b64encode(chunk).decode("ascii")
                 conversation.append_audio(audio_b64)
-                time.sleep(0.05)
+                time.sleep(0.033)  # ~3x realtime (100ms chunk / 3)
 
             conversation.end_session()
             done.wait(timeout=15)

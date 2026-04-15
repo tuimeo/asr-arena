@@ -101,10 +101,11 @@ async def recognize(
             return engine_id, {"text": None, "duration_ms": 0, "cer": None, "error": "未配置 API 密钥"}
 
         t0 = time.monotonic()
+        print(f"[{engine_id}] Starting recognition, audio: WAV={len(wav_bytes)}B PCM={len(pcm_bytes)}B")
         try:
             result = await asyncio.wait_for(
                 engine.recognize(wav_bytes, pcm_bytes, 16000, provider_keys),
-                timeout=30.0,
+                timeout=60.0,
             )
             duration_ms = int((time.monotonic() - t0) * 1000)
             cer_val = None
@@ -117,10 +118,15 @@ async def recognize(
                 "error": result.error,
             }
         except asyncio.TimeoutError:
-            return engine_id, {"text": None, "duration_ms": 30000, "cer": None, "error": "超时 (30秒)"}
+            print(f"[{engine_id}] TIMEOUT after 60s")
+            return engine_id, {"text": None, "duration_ms": 60000, "cer": None, "error": "超时 (60秒)"}
         except Exception as e:
             duration_ms = int((time.monotonic() - t0) * 1000)
+            print(f"[{engine_id}] ERROR ({duration_ms}ms): {type(e).__name__}: {e}")
             return engine_id, {"text": None, "duration_ms": duration_ms, "cer": None, "error": str(e)}
+
+    print(f"[recognize] engines_requested={engines_requested}")
+    print(f"[recognize] keys providers={list(keys.keys())}")
 
     # SSE stream: yield results as each engine completes
     async def event_stream():

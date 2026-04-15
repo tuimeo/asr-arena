@@ -216,7 +216,7 @@ class _VolcengineASREngine(BaseASREngine):
                     offset = end
 
                     if not is_last:
-                        await asyncio.sleep(0.02)
+                        await asyncio.sleep(0.067)  # ~3x realtime (200ms chunk / 3)
 
                 # Collect results
                 while True:

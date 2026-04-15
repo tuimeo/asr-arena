@@ -118,7 +118,7 @@ class XunfeiIatEngine(BaseASREngine):
                     offset = end
                     frame_idx += 1
                     if not is_last:
-                        await asyncio.sleep(0.04)
+                        await asyncio.sleep(0.013)  # ~3x realtime (40ms chunk / 3)
 
                 while True:
                     try:
@@ -151,10 +151,12 @@ class XunfeiIatEngine(BaseASREngine):
 
 
 class XunfeiSparkEngine(BaseASREngine):
-    """讯飞星火中英识别大模型 — 使用官方 xfyunsdkspark SDK"""
+    """讯飞星火中英识别大模型 — WebSocket, domain=slm"""
     engine_id = "xunfei_spark"
     display_name = "讯飞 星火语音大模型"
     provider = "xunfei"
+
+    WSS_URL = "wss://iat.xf-yun.com/v1"
 
     async def recognize(self, wav_bytes: bytes, pcm_bytes: bytes, sample_rate: int, keys: dict) -> ASRResult:
         app_id = keys.get("app_id", "")
@@ -163,40 +165,105 @@ class XunfeiSparkEngine(BaseASREngine):
         if not all([app_id, api_key, api_secret]):
             return ASRResult(error="缺少 app_id / api_key / api_secret")
 
-        def _call():
-            import io
-            from xfyunsdkspark.spark_iat_client import SparkIatClient, SparkIatModel
-
-            client = SparkIatClient(
-                app_id=app_id,
-                api_key=api_key,
-                api_secret=api_secret,
-                iat_model_enum=SparkIatModel.ZH_CN_MANDARIN,
-                dwa="wpgs",
-            )
-
-            content_map = {}
-            f = io.BytesIO(pcm_bytes)
-
-            for chunk in client.stream(f):
-                text_chunk = base64.b64decode(chunk["result"]["text"]).decode("utf-8")
-                parsed = json.loads(text_chunk)
-                text_piece = _extract_text_from_ws(parsed.get("ws", []))
-                pgs = parsed.get("pgs", "")
-
-                if pgs == "apd":
-                    content_map[len(content_map)] = text_piece
-                elif pgs == "rpl":
-                    rg = parsed.get("rg", [])
-                    if len(rg) == 2:
-                        for i in range(rg[0], rg[1] + 1):
-                            content_map.pop(i, None)
-                    content_map[len(content_map)] = text_piece
-
-            text = "".join(content_map.values())
-            return ASRResult(text=text if text else None)
+        ws_url = _build_auth_url(self.WSS_URL, api_key, api_secret)
+        FRAME_SIZE = 1280
+        collector = _WpgsCollector()
 
         try:
-            return await asyncio.to_thread(_call)
+            async with websockets.connect(ws_url) as ws:
+                total = len(pcm_bytes)
+                offset = 0
+                seq = 0
+
+                while offset < total:
+                    end = min(offset + FRAME_SIZE, total)
+                    chunk = pcm_bytes[offset:end]
+                    is_first = seq == 0
+                    is_last = end >= total
+                    status = 0 if is_first else (2 if is_last else 1)
+
+                    data = {}
+                    if is_first:
+                        data["header"] = {"app_id": app_id, "status": 0}
+                        data["parameter"] = {
+                            "iat": {
+                                "domain": "slm",
+                                "language": "zh_cn",
+                                "accent": "mandarin",
+                                "eos": 6000,
+                                "vinfo": 1,
+                                "dwa": "wpgs",
+                                "result": {
+                                    "encoding": "utf8",
+                                    "compress": "raw",
+                                    "format": "json",
+                                },
+                            }
+                        }
+                    else:
+                        data["header"] = {"app_id": app_id, "status": status}
+
+                    data["payload"] = {
+                        "audio": {
+                            "encoding": "raw",
+                            "sample_rate": 16000,
+                            "channels": 1,
+                            "bit_depth": 16,
+                            "seq": seq,
+                            "status": status,
+                            "audio": base64.b64encode(chunk).decode(),
+                        }
+                    }
+
+                    await ws.send(json.dumps(data))
+                    offset = end
+                    seq += 1
+                    if not is_last:
+                        await asyncio.sleep(0.013)  # ~3x realtime (40ms chunk / 3)
+
+                while True:
+                    try:
+                        msg = await asyncio.wait_for(ws.recv(), timeout=10)
+                    except asyncio.TimeoutError:
+                        break
+
+                    resp = json.loads(msg)
+                    header = resp.get("header", {})
+                    code = header.get("code", resp.get("code", -1))
+                    if code != 0:
+                        message = header.get("message", resp.get("message", ""))
+                        return ASRResult(error=f"API 错误 ({code}): {message}")
+
+                    payload = resp.get("payload", resp.get("data", {}))
+                    result = payload.get("result", {})
+
+                    # Result text may be base64-encoded JSON
+                    if "text" in result and isinstance(result["text"], str):
+                        try:
+                            decoded = json.loads(base64.b64decode(result["text"]).decode())
+                            sn = decoded.get("sn", 0)
+                            pgs = decoded.get("pgs", "")
+                            rg = decoded.get("rg", [])
+                            text_piece = _extract_text_from_ws(decoded.get("ws", []))
+                        except Exception:
+                            sn = result.get("sn", 0)
+                            pgs = ""
+                            rg = []
+                            text_piece = result["text"]
+                    else:
+                        sn = result.get("sn", 0)
+                        pgs = result.get("pgs", "")
+                        rg = result.get("rg", [])
+                        text_piece = _extract_text_from_ws(result.get("ws", []))
+
+                    collector.process(pgs, rg, sn, text_piece)
+
+                    resp_status = header.get("status", payload.get("status", -1))
+                    if resp_status == 2:
+                        break
+
         except Exception as e:
             return ASRResult(error=f"讯飞星火错误: {type(e).__name__}: {e}")
+
+        text = collector.get_text()
+        return ASRResult(text=text if text else None)

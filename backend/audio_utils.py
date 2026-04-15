@@ -2,7 +2,7 @@ import io
 from pydub import AudioSegment
 
 
-MAX_DURATION_SECONDS = 60
+MAX_DURATION_SECONDS = 75
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 
 

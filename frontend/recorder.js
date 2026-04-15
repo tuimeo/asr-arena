@@ -152,7 +152,7 @@ function startTimer() {
         const mins = Math.floor(elapsed / 60);
         const secs = elapsed % 60;
         timerEl.textContent = `${mins}:${String(secs).padStart(2, "0")}`;
-        if (elapsed >= 60) {
+        if (elapsed >= 75) {
             stopRecording();
         }
     }, 200);
