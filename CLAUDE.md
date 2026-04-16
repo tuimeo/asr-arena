@@ -1,10 +1,10 @@
-# ASR Compare — 开发交接文档
+# ASR Arena — 开发交接文档
 
 > 本文档供 AI 助手或新开发者快速了解项目背景、设计决策和已知问题。
 
 ## 项目概述
 
-多供应商 ASR（语音识别）引擎横向对比工具。用户通过网页录音或上传音频，同时发给多个 ASR 引擎，并排展示结果和 CER（字错率）。
+多供应商 ASR（语音识别）服务横向对比工具。用户通过网页录音或上传音频，同时发给多个 ASR 服务，并排展示结果和 CER（字错率）。
 
 **目标场景**：中文为主，夹杂英文，需兼容地方口音（软约束）。面向中国大陆用户。
 
@@ -22,7 +22,7 @@
 # 安装依赖
 uv sync
 
-# 开发测试（命令行直接调引擎，读 .env 的 key）
+# 开发测试（命令行直接调服务，读 .env 的 key）
 uv run python -m backend.test_engines samples/tts_standard.mp3 --engines ali_qwen3asr,baidu_standard
 
 # 启动 Web 服务
@@ -30,7 +30,7 @@ uv run python -m backend.main
 # 浏览器打开 http://localhost:8000
 ```
 
-## 引擎清单（15 个，5 家供应商）
+## 服务清单（15 个，5 家供应商）
 
 ### 阿里云百炼（DashScope）— provider: "ali"
 | engine_id | 模型 ID | API 类型 | 备注 |
@@ -60,7 +60,7 @@ uv run python -m backend.main
 | xunfei_spark | domain=slm | WebSocket wss://iat.xf-yun.com/v1 |
 
 **注意**：
-- 两个引擎的 WebSocket 协议结构不同（旧版用 common/business/data，星火用 header/parameter/payload）。
+- 两个服务的 WebSocket 协议结构不同（旧版用 common/business/data，星火用 header/parameter/payload）。
 - 星火的 `parameter.iat` 必须包含 `result` 块（encoding/compress/format），否则报 10106 错误。
 - 官方 `xfyunsdkspark` SDK 内部 `WAIT_MILLIS=40` 写死 1x 速度发送，75s 音频必超时。已改为自己的 WebSocket 实现。
 - wpgs 动态修正协议：星火模型每次 `rpl` 的 text 是累积的完整文本（不是增量），`_WpgsCollector` 能正确处理。
@@ -92,17 +92,17 @@ uv run python -m backend.main
 - 鉴权通过 HTTP headers（X-Api-App-Key, X-Api-Access-Key, X-Api-Resource-Id, X-Api-Connect-Id）。
 - websockets v16 用 `additional_headers`（不是 `extra_headers`）。
 
-## 流式引擎发送配速
+## 流式服务发送配速
 
 统一 3 倍速发送（chunk 实际音频时长 / 3）：
 
-| 引擎 | chunk | 音频时长 | sleep |
+| 服务 | chunk | 音频时长 | sleep |
 |---|---|---|---|
 | 讯飞（两个） | 1280B | 40ms | 0.013s |
 | 阿里 Qwen3-RT | 3200B | 100ms | 0.033s |
 | 火山（四个） | 6400B | 200ms | 0.067s |
 
-75 秒音频最慢约 25s 发完。引擎超时设为 60s。
+75 秒音频最慢约 25s 发完。超时设为 60s。
 
 ## 前端架构
 
@@ -111,11 +111,11 @@ uv run python -m backend.main
 |---|---|
 | localStorage `asr_compare_encrypted_keys` | API 密钥密文（Fernet 加密） |
 | localStorage `asr_compare_configured_providers` | 已配置的供应商列表（用于 checkbox 状态） |
-| IndexedDB `asr_compare_db` | 录音记录（blob、名称、时间、参考文本、引擎列表、识别结果） |
+| IndexedDB `asr_compare_db` | 录音记录（blob、名称、时间、参考文本、服务列表、识别结果） |
 
 ### JS 文件依赖关系
 加载顺序：`app.js` → `api-keys.js` → `recorder.js`
-- `app.js`：定义 `ALL_ENGINES`、`buildResultMetaHtml()`、引擎 checkbox、识别流程
+- `app.js`：定义 `ALL_ENGINES`、`buildResultMetaHtml()`、服务 checkbox、识别流程
 - `api-keys.js`：依赖 `ALL_ENGINES`（通过 `getEngineProviders()`）
 - `recorder.js`：依赖 `ALL_ENGINES`、`buildResultMetaHtml()`、`createRecord()`
 
@@ -127,7 +127,7 @@ uv run python -m backend.main
 5. 加密密钥可通过 .env `ENCRYPTION_KEY` 配置，默认用 hardcoded passphrase 派生
 
 ### 识别结果流式传输（SSE）
-后端用 `StreamingResponse` + `asyncio.as_completed`，每完成一个引擎立即推送。前端用 `fetch` + `ReadableStream` 读取，逐个更新卡片。
+后端用 `StreamingResponse` + `asyncio.as_completed`，每完成一个服务立即推送。前端用 `fetch` + `ReadableStream` 读取，逐个更新卡片。
 
 ## 已知限制
 
@@ -142,6 +142,6 @@ uv run python -m backend.main
 | 文件 | 时长 | 用途 |
 |---|---|---|
 | samples/tts_standard.mp3 + .txt | 5.6s | 短音频快速测试 |
-| samples/tts_long_75s.mp3 + .txt | 75s | 长音频回归测试（流式引擎 3x 配速） |
+| samples/tts_long_75s.mp3 + .txt | 75s | 长音频回归测试（流式服务 3x 配速） |
 
 音频由阿里云 CosyVoice TTS 生成（非真人），可公开。

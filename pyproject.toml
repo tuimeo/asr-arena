@@ -1,7 +1,7 @@
 [project]
-name = "asr-compare"
+name = "asr-arena"
 version = "0.1.0"
-description = "ASR 语音识别引擎对比工具"
+description = "国产语音识别服务横评工具"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

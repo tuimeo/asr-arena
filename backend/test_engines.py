@@ -1,5 +1,5 @@
 """
-开发测试脚本：用 .env 中的 key + 本地音频文件，直接测试各引擎。
+开发测试脚本：用 .env 中的 key + 本地音频文件，直接测试各服务。
 不走 HTTP，不走前端。
 
 用法:
@@ -96,9 +96,9 @@ async def test_engine(engine_id: str, wav_bytes: bytes, pcm_bytes: bytes, keys: 
 
 
 async def main():
-    parser = argparse.ArgumentParser(description="ASR 引擎开发测试")
+    parser = argparse.ArgumentParser(description="ASR 服务开发测试")
     parser.add_argument("audio_file", help="音频文件路径 (wav/mp3/webm 等)")
-    parser.add_argument("--engines", help="逗号分隔的引擎 ID，不指定则跑所有已配置的", default="")
+    parser.add_argument("--engines", help="逗号分隔的服务 ID，不指定则跑所有已配置的", default="")
     parser.add_argument("--reference", help="参考文本，用于计算 CER", default="")
     args = parser.parse_args()
 
@@ -135,7 +135,7 @@ async def main():
             if engine.provider in keys
         ]
 
-    print(f"测试引擎: {engine_ids}")
+    print(f"测试服务: {engine_ids}")
     if args.reference:
         print(f"参考文本: {args.reference}")
     print()

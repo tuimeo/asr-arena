@@ -141,7 +141,7 @@ wheels = [
 ]
 
 [[package]]
-name = "asr-compare"
+name = "asr-arena"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [

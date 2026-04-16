@@ -19,7 +19,7 @@ from backend.engines import ENGINE_REGISTRY
 from backend.key_crypto import decrypt_keys, encrypt_keys
 from backend.rate_limit import rate_limiter
 
-app = FastAPI(title="ASR Compare")
+app = FastAPI(title="ASR Arena")
 
 FRONTEND_DIR = Path(__file__).parent.parent / "frontend"
 
@@ -94,7 +94,7 @@ async def recognize(
     async def call_engine(engine_id: str):
         engine = ENGINE_REGISTRY.get(engine_id)
         if not engine:
-            return engine_id, {"text": None, "duration_ms": 0, "cer": None, "error": f"未知引擎: {engine_id}"}
+            return engine_id, {"text": None, "duration_ms": 0, "cer": None, "error": f"未知服务: {engine_id}"}
 
         provider_keys = keys.get(engine.provider)
         if not provider_keys:

@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ASR 语音识别引擎对比</title>
+    <title>ASR大乱斗 — 国产语音识别横评</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>ASR 语音识别引擎对比工具</h1>
-            <p class="subtitle">录音或上传音频，同时对比多家语音识别引擎的效果</p>
+            <h1>ASR大乱斗 — 国产语音识别横评</h1>
+            <p class="subtitle">录音或上传音频，同时对比多家语音识别服务的效果</p>
         </header>
 
         <!-- Security Notice -->
@@ -31,13 +31,13 @@
                     <!-- Alibaba Cloud -->
                     <div class="key-group" data-provider-group="ali">
                         <h3>阿里云百炼 (DashScope) <span class="key-configured-badge" style="display:none;">已配置</span></h3>
-                        <p class="key-hint">用于 Paraformer-v2 / Fun-ASR / Qwen3-ASR 三个引擎</p>
+                        <p class="key-hint">用于 Paraformer-v2 / Fun-ASR / Qwen3-ASR 三个服务</p>
                         <label>API Key <input type="password" data-provider="ali" data-field="api_key" placeholder="sk-..."></label>
                     </div>
                     <!-- Baidu -->
                     <div class="key-group" data-provider-group="baidu">
                         <h3>百度智能云 <span class="key-configured-badge" style="display:none;">已配置</span></h3>
-                        <p class="key-hint">用于标准版 / 极速版两个引擎</p>
+                        <p class="key-hint">用于标准版 / 极速版两个服务</p>
                         <label>App ID <input type="text" data-provider="baidu" data-field="app_id" placeholder="App ID"></label>
                         <label>API Key <input type="password" data-provider="baidu" data-field="api_key" placeholder="API Key"></label>
                         <label>Secret Key <input type="password" data-provider="baidu" data-field="secret_key" placeholder="Secret Key"></label>
@@ -45,7 +45,7 @@
                     <!-- iFlytek -->
                     <div class="key-group" data-provider-group="xunfei">
                         <h3>科大讯飞 <span class="key-configured-badge" style="display:none;">已配置</span></h3>
-                        <p class="key-hint">用于星火语音大模型引擎</p>
+                        <p class="key-hint">用于星火语音大模型</p>
                         <label>App ID <input type="text" data-provider="xunfei" data-field="app_id" placeholder="App ID"></label>
                         <label>API Key <input type="password" data-provider="xunfei" data-field="api_key" placeholder="API Key"></label>
                         <label>API Secret <input type="password" data-provider="xunfei" data-field="api_secret" placeholder="API Secret"></label>
@@ -53,7 +53,7 @@
                     <!-- Tencent -->
                     <div class="key-group" data-provider-group="tencent">
                         <h3>腾讯云 <span class="key-configured-badge" style="display:none;">已配置</span></h3>
-                        <p class="key-hint">用于一句话识别 / 极速版引擎</p>
+                        <p class="key-hint">用于一句话识别 / 极速版</p>
                         <label>Secret ID <input type="password" data-provider="tencent" data-field="secret_id" placeholder="Secret ID"></label>
                         <label>Secret Key <input type="password" data-provider="tencent" data-field="secret_key" placeholder="Secret Key"></label>
                         <label>AppID <input type="text" data-provider="tencent" data-field="appid" placeholder="AppID (极速版需要)"></label>
@@ -61,7 +61,7 @@
                     <!-- Volcengine -->
                     <div class="key-group" data-provider-group="volcengine">
                         <h3>火山引擎 <span class="key-configured-badge" style="display:none;">已配置</span></h3>
-                        <p class="key-hint">用于 Seed-ASR 引擎</p>
+                        <p class="key-hint">用于 Seed-ASR</p>
                         <label>App ID <input type="text" data-provider="volcengine" data-field="app_id" placeholder="App ID"></label>
                         <label>Access Token <input type="password" data-provider="volcengine" data-field="access_token" placeholder="Access Token"></label>
                     </div>
@@ -103,7 +103,7 @@
             <h2>开始识别</h2>
             <div class="recognize-group">
                 <div class="recognize-row">
-                    <label class="recognize-label">选择引擎</label>
+                    <label class="recognize-label">选择服务</label>
                     <div class="engine-select-row">
                         <div id="engine-checkboxes" class="engine-checkboxes"></div>
                         <div class="engine-select-actions">

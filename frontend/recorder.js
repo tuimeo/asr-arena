@@ -220,7 +220,7 @@ async function refreshHistory() {
             <div class="record-header" onclick="toggleRecordDetail(${rec.id})">
                 <span class="record-name" id="rname-${rec.id}">${escapeHtml(rec.name)}</span>
                 <span class="record-meta">
-                    ${engineCount > 0 ? `<span class="badge">${engineCount} 引擎</span>` : ""}
+                    ${engineCount > 0 ? `<span class="badge">${engineCount} 个服务</span>` : ""}
                     ${hasRef ? '<span class="badge badge-ref">有参考</span>' : ""}
                 </span>
                 <span class="record-time">${formatTime(new Date(rec.timestamp))}</span>

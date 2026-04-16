@@ -189,7 +189,7 @@ async function startRecognize() {
 
     const selectedEngines = getSelectedEngines();
     if (selectedEngines.length === 0) {
-        alert("请至少勾选一个引擎");
+        alert("请至少勾选一个服务");
         return;
     }
 
@@ -284,7 +284,7 @@ async function startRecognize() {
         }
 
         // Save as a new record
-        const recordName = currentAudioName + ` (${selectedEngines.length}引擎)`;
+        const recordName = currentAudioName + ` (${selectedEngines.length}个服务)`;
         await createRecord(currentAudioBlob, recordName, selectedEngines, results, referenceText);
         refreshHistory();
 
