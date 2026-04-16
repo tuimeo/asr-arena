@@ -179,6 +179,12 @@ async def compute_cer(body: dict):
     return {"cer": results}
 
 
+@app.get("/api/health")
+async def health():
+    """Health check for Docker / Nginx / load balancers."""
+    return {"status": "ok"}
+
+
 @app.get("/api/engines")
 async def list_engines():
     """Return available engines and their provider requirements."""

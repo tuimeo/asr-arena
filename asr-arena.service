@@ -1,0 +1,46 @@
+# ASR Arena — systemd service
+#
+# 安装步骤：
+#   1. 根据实际环境修改下方路径和用户
+#   2. sudo cp asr-arena.service /etc/systemd/system/
+#   3. sudo systemctl daemon-reload
+#   4. sudo systemctl enable --now asr-arena
+#
+# 常用命令：
+#   sudo systemctl status asr-arena    # 查看状态
+#   sudo journalctl -u asr-arena -f    # 实时日志
+#   sudo systemctl restart asr-arena   # 重启
+
+[Unit]
+Description=ASR Arena — 国产语音识别横评
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+
+# ---- 根据实际环境修改这两行 ----
+WorkingDirectory=/opt/asr-arena
+ExecStart=/usr/local/bin/uv run uvicorn backend.main:app --host 127.0.0.1 --port 8000
+
+# 环境变量（从 .env 读取）
+EnvironmentFile=/opt/asr-arena/.env
+
+# 崩溃自动重启，间隔 5 秒
+Restart=on-failure
+RestartSec=5
+
+# 优雅停止：先 SIGTERM，等 30 秒让在途请求完成，再 SIGKILL
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+# 安全加固
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/asr-arena
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
