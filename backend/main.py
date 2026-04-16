@@ -23,6 +23,11 @@ app = FastAPI(title="ASR Arena")
 
 FRONTEND_DIR = Path(__file__).parent.parent / "frontend"
 
+# Limit concurrent recognize requests to prevent resource exhaustion.
+# Each request may spawn up to 15 ASR calls + 1 ffmpeg conversion.
+MAX_CONCURRENT_RECOGNITIONS = int(os.getenv("MAX_CONCURRENT_RECOGNITIONS", "5"))
+_recognize_semaphore = asyncio.Semaphore(MAX_CONCURRENT_RECOGNITIONS)
+
 
 @app.post("/api/merge-keys")
 async def api_merge_keys(body: dict):
@@ -56,6 +61,18 @@ async def recognize(
     audio: UploadFile = File(...),
     config: str = Form(...),
 ):
+    # Concurrency gate — reject early if too many requests in flight
+    if _recognize_semaphore._value == 0:
+        return JSONResponse(
+            status_code=503,
+            content={"error": f"服务繁忙，当前最多支持 {MAX_CONCURRENT_RECOGNITIONS} 个并发识别请求，请稍后再试"},
+        )
+
+    async with _recognize_semaphore:
+        return await _do_recognize(audio, config)
+
+
+async def _do_recognize(audio: UploadFile, config: str):
     cfg = json.loads(config)
     engines_requested = cfg.get("engines", [])
     encrypted_keys = cfg.get("encrypted_keys", "")
@@ -82,9 +99,14 @@ async def recognize(
             content={"error": f"文件大小超过限制 ({MAX_FILE_SIZE // 1024 // 1024}MB)"},
         )
 
-    # Convert audio once
+    # Convert audio once (with timeout to guard against malicious files)
     try:
-        wav_bytes, pcm_bytes = await asyncio.to_thread(convert_to_pcm16k, audio_bytes)
+        wav_bytes, pcm_bytes = await asyncio.wait_for(
+            asyncio.to_thread(convert_to_pcm16k, audio_bytes),
+            timeout=45.0,
+        )
+    except asyncio.TimeoutError:
+        return JSONResponse(status_code=400, content={"error": "音频转码超时，请检查文件是否正常"})
     except ValueError as e:
         return JSONResponse(status_code=400, content={"error": str(e)})
     except Exception:

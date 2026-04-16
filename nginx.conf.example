@@ -1,0 +1,76 @@
+# ASR Arena — Nginx 反向代理配置示例
+#
+# 用法：
+#   1. 复制到 /etc/nginx/sites-available/asr-arena
+#   2. 修改 server_name 和 SSL 配置
+#   3. ln -s /etc/nginx/sites-available/asr-arena /etc/nginx/sites-enabled/
+#   4. nginx -t && systemctl reload nginx
+
+# IP 级限流区域定义（放在 http 块中）
+# 如果你已有 nginx.conf 的 http 块，把这两行加到那里
+limit_req_zone $binary_remote_addr zone=asr_general:10m rate=30r/m;
+limit_req_zone $binary_remote_addr zone=asr_recognize:10m rate=10r/m;
+
+server {
+    listen 80;
+    server_name your-domain.com;
+
+    # ---- 基础安全 ----
+
+    # 请求体大小限制（与应用层 10MB 对齐）
+    client_max_body_size 10m;
+
+    # 隐藏 Nginx 版本
+    server_tokens off;
+
+    # 防止 MIME 嗅探
+    add_header X-Content-Type-Options nosniff always;
+    add_header X-Frame-Options DENY always;
+
+    # ---- 识别接口（最严格限流）----
+    location /api/recognize {
+        # 每 IP 每分钟 10 次，允许突发 2 个排队
+        limit_req zone=asr_recognize burst=2 nodelay;
+        limit_req_status 429;
+
+        # 代理超时：音频转码 + ASR 调用最长约 60s + 余量
+        proxy_read_timeout 120s;
+        proxy_send_timeout 30s;
+
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # SSE 支持（禁用缓冲，保持流式推送）
+        proxy_buffering off;
+        proxy_cache off;
+    }
+
+    # ---- 其他 API ----
+    location /api/ {
+        # 每 IP 每分钟 30 次
+        limit_req zone=asr_general burst=5 nodelay;
+        limit_req_status 429;
+
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # ---- 静态前端 ----
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+
+        # 静态资源缓存
+        location ~* \.(js|css|png|ico|svg)$ {
+            proxy_pass http://127.0.0.1:8000;
+            expires 1h;
+            add_header Cache-Control "public, immutable";
+        }
+    }
+}
