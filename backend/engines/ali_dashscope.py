@@ -94,6 +94,7 @@ class AliQwen3ASREngine(BaseASREngine):
                     {"role": "user", "content": [{"audio": audio_uri}]},
                 ],
                 result_format="message",
+                enable_itn=True,
             )
 
             if response.status_code == 200:

@@ -22,11 +22,25 @@ from backend.rate_limit import rate_limiter
 app = FastAPI(title="ASR Arena")
 
 FRONTEND_DIR = Path(__file__).parent.parent / "frontend"
+PROVIDER_REQUIRED_FIELDS = {
+    "ali": ["api_key"],
+    "baidu": ["app_id", "api_key", "secret_key"],
+    "xunfei": ["app_id", "api_key", "api_secret"],
+    "tencent": ["secret_id", "secret_key", "appid"],
+    "volcengine": ["app_id", "access_token"],
+}
 
 # Limit concurrent recognize requests to prevent resource exhaustion.
 # Each request may spawn up to 15 ASR calls + 1 ffmpeg conversion.
 MAX_CONCURRENT_RECOGNITIONS = int(os.getenv("MAX_CONCURRENT_RECOGNITIONS", "5"))
 _recognize_semaphore = asyncio.Semaphore(MAX_CONCURRENT_RECOGNITIONS)
+
+
+def _is_provider_configured(provider: str, keys: dict) -> bool:
+    required_fields = PROVIDER_REQUIRED_FIELDS.get(provider, [])
+    if not required_fields:
+        return bool(keys)
+    return all((keys or {}).get(field) for field in required_fields)
 
 
 @app.post("/api/merge-keys")
@@ -43,15 +57,15 @@ async def api_merge_keys(body: dict):
         except ValueError:
             pass  # Old keys unrecoverable, start fresh
 
-    # Overlay new keys per provider
+    # Overlay new keys per provider (whole-provider overwrite).
     for provider, pkeys in new_keys.items():
         if pkeys:
             merged[provider] = pkeys
 
     encrypted = encrypt_keys(merged)
 
-    # Return list of configured providers for frontend checkbox logic
-    providers = [p for p, k in merged.items() if k]
+    # Return only fully configured providers for frontend checkbox logic.
+    providers = [p for p, k in merged.items() if _is_provider_configured(p, k)]
 
     return {"encrypted": encrypted, "providers": providers}
 
@@ -85,6 +99,16 @@ async def _do_recognize(audio: UploadFile, config: str):
         keys = decrypt_keys(encrypted_keys)
     except ValueError as e:
         return JSONResponse(status_code=400, content={"error": str(e)})
+
+    invalid_providers = [
+        provider for provider, provider_keys in keys.items()
+        if provider in PROVIDER_REQUIRED_FIELDS and not _is_provider_configured(provider, provider_keys)
+    ]
+    if invalid_providers:
+        return JSONResponse(
+            status_code=400,
+            content={"error": f"以下供应商密钥不完整，请重新保存完整配置: {', '.join(invalid_providers)}"},
+        )
 
     # Rate limit check
     rate_error = rate_limiter.check(keys)

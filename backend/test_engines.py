@@ -46,13 +46,12 @@ def get_env_keys() -> dict:
             "api_secret": os.getenv("XUNFEI_API_SECRET"),
         }
 
-    if os.getenv("TENCENT_SECRET_ID") and os.getenv("TENCENT_SECRET_KEY"):
+    if os.getenv("TENCENT_SECRET_ID") and os.getenv("TENCENT_SECRET_KEY") and os.getenv("TENCENT_APPID"):
         tencent_keys = {
             "secret_id": os.getenv("TENCENT_SECRET_ID"),
             "secret_key": os.getenv("TENCENT_SECRET_KEY"),
+            "appid": os.getenv("TENCENT_APPID"),
         }
-        if os.getenv("TENCENT_APPID"):
-            tencent_keys["appid"] = os.getenv("TENCENT_APPID")
         env_keys["tencent"] = tencent_keys
 
     if os.getenv("VOLCENGINE_APP_ID") and os.getenv("VOLCENGINE_ACCESS_TOKEN"):

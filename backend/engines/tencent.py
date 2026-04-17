@@ -4,10 +4,11 @@ import hashlib
 import hmac
 import time
 
-import httpx
 import requests
 
 from .base import ASRResult, BaseASREngine
+
+TENCENT_HTTP_TIMEOUT_SECONDS = 55
 
 
 class TencentSentenceEngine(BaseASREngine):
@@ -24,10 +25,14 @@ class TencentSentenceEngine(BaseASREngine):
 
         def _call():
             from tencentcloud.common import credential
+            from tencentcloud.common.profile.client_profile import ClientProfile
+            from tencentcloud.common.profile.http_profile import HttpProfile
             from tencentcloud.asr.v20190614 import asr_client, models
 
             cred = credential.Credential(secret_id, secret_key)
-            client = asr_client.AsrClient(cred, "")
+            http_profile = HttpProfile(reqTimeout=TENCENT_HTTP_TIMEOUT_SECONDS)
+            client_profile = ClientProfile(httpProfile=http_profile)
+            client = asr_client.AsrClient(cred, "", client_profile)
 
             req = models.SentenceRecognitionRequest()
             req.EngSerViceType = "16k_zh"
@@ -103,7 +108,12 @@ class _TencentFlashEngine(BaseASREngine):
                 "Authorization": signature,
             }
 
-            resp = requests.post(req_url, headers=headers, data=wav_bytes)
+            resp = requests.post(
+                req_url,
+                headers=headers,
+                data=wav_bytes,
+                timeout=TENCENT_HTTP_TIMEOUT_SECONDS,
+            )
             data = resp.json()
 
             if data.get("code") != 0:

@@ -5,6 +5,7 @@ description = "国产语音识别服务横评工具"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "cryptography>=42.0",
     "fastapi>=0.110",
     "uvicorn>=0.27",
     "python-multipart>=0.0.6",
@@ -15,6 +16,7 @@ dependencies = [
     "tencentcloud-sdk-python-asr>=3.0",
     "websockets>=12.0",
     "httpx>=0.27",
+    "requests>=2.31",
     "python-dotenv>=1.2.2",
     "chardet>=7.4.3",
     "xfyunsdkspark>=0.0.3",

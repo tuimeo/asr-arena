@@ -8,7 +8,7 @@ const PROVIDERS = {
     ali: { fields: ["api_key"] },
     baidu: { fields: ["app_id", "api_key", "secret_key"] },
     xunfei: { fields: ["app_id", "api_key", "api_secret"] },
-    tencent: { fields: ["secret_id", "secret_key"] },  // appid optional, for flash
+    tencent: { fields: ["secret_id", "secret_key", "appid"] },
     volcengine: { fields: ["app_id", "access_token"] },
 };
 
@@ -68,6 +68,18 @@ function collectKeysFromInputs() {
     return keys;
 }
 
+function validateNewKeys(newKeys) {
+    const errors = [];
+    for (const [provider, values] of Object.entries(newKeys)) {
+        const requiredFields = PROVIDERS[provider]?.fields || [];
+        const missing = requiredFields.filter((field) => !values[field]);
+        if (missing.length > 0) {
+            errors.push(`${provider}: 缺少 ${missing.join(" / ")}`);
+        }
+    }
+    return errors;
+}
+
 
 // Provider list stored alongside encrypted keys (we can't decrypt on frontend)
 const PROVIDERS_KEY = "asr_compare_configured_providers";
@@ -102,6 +114,13 @@ async function saveKeys() {
         return;
     }
 
+    const validationErrors = validateNewKeys(newKeys);
+    if (validationErrors.length > 0) {
+        status.textContent = "保存失败: 请补全当前供应商的必填字段";
+        alert("以下密钥配置不完整，未保存：\n" + validationErrors.join("\n"));
+        return;
+    }
+
     // Merge: send new keys + old ciphertext to backend.
     // Backend decrypts old, merges new on top, re-encrypts.
     const existingEncrypted = loadEncryptedKeys();
@@ -117,7 +136,8 @@ async function saveKeys() {
         });
 
         if (!resp.ok) {
-            status.textContent = "保存失败";
+            const err = await resp.json().catch(() => ({ error: "保存失败" }));
+            status.textContent = err.error || "保存失败";
             return;
         }
 
