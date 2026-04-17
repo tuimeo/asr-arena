@@ -91,6 +91,7 @@ uv run python -m backend.main
 - 2.0 双向流式用 `bigmodel_async`（不是 `bigmodel`），否则 400。
 - 鉴权通过 HTTP headers（X-Api-App-Key, X-Api-Access-Key, X-Api-Resource-Id, X-Api-Connect-Id）。
 - websockets v16 用 `additional_headers`（不是 `extra_headers`）。
+- `volcengine_seedasr2` 开启 `enable_nonstream: true`（仅 2.0 优化版支持），触发二遍识别：VAD 分句（默认 800ms）后用非流式模型重识别该段，`result.utterances[].definite=true` 标记 definite 分句。`result.text` 字段自动累积所有 definite 分句修正后的文本，现有累积逻辑无需改。
 
 ## 流式服务发送配速
 

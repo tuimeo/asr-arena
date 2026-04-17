@@ -94,7 +94,6 @@ class AliQwen3ASREngine(BaseASREngine):
                     {"role": "user", "content": [{"audio": audio_uri}]},
                 ],
                 result_format="message",
-                enable_itn=True,
             )
 
             if response.status_code == 200:
@@ -157,7 +156,6 @@ class AliQwen3ASRRealtimeEngine(BaseASREngine):
             conversation.connect()
 
             transcription_params = TranscriptionParams(
-                language="zh",
                 sample_rate=sample_rate,
                 input_audio_format="pcm",
             )

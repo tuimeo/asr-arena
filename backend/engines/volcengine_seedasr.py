@@ -118,6 +118,7 @@ class _VolcengineASREngine(BaseASREngine):
     provider = "volcengine"
     wss_url: str = ""
     resource_id: str = ""
+    enable_nonstream: bool = False  # 2.0 bidirectional streaming only
 
     async def recognize(self, wav_bytes: bytes, pcm_bytes: bytes, sample_rate: int, keys: dict) -> ASRResult:
         app_id = keys.get("app_id", "")
@@ -151,6 +152,8 @@ class _VolcengineASREngine(BaseASREngine):
                 "result_type": "full",
             },
         }
+        if self.enable_nonstream:
+            request_params["request"]["enable_nonstream"] = True
 
         payload_bytes = gzip.compress(json.dumps(request_params).encode("utf-8"))
 
@@ -268,11 +271,12 @@ class VolcengineSeedASRNostreamEngine(_VolcengineASREngine):
 
 
 class VolcengineSeedASR2Engine(_VolcengineASREngine):
-    """Seed-ASR 2.0 双向流式(优化版)"""
+    """Seed-ASR 2.0 双向流式(优化版) + 二遍识别：流式上屏 + 分句用非流式模型重识别"""
     engine_id = "volcengine_seedasr2"
     display_name = "火山 Seed-ASR 2.0 流式"
     wss_url = "wss://openspeech.bytedance.com/api/v3/sauc/bigmodel_async"
     resource_id = "volc.seedasr.sauc.duration"
+    enable_nonstream = True
 
 
 class VolcengineSeedASR2NostreamEngine(_VolcengineASREngine):
